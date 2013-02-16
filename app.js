@@ -3,9 +3,10 @@ var net = require('net'),
     _ = require('lodash'),
     EntryParser = require('./lib/entry_parser'),
     options = {path: '/usr/local/var/run/collectd-unixsock'},
-    regexp = /(\d+) Values found/i;
+    headerRegexp = /(\d+) Value.*/i;
 
 var queue = [];
+var lineQueue = [];
 var eventParser = new EntryParser();
 
 
@@ -16,38 +17,46 @@ var client = net.connect(options,
 
 client.on('data', function (data) {
 
-    console.log('data =\n' + data.toString());
-
     // split
-    var tokens = data.toString().split('\n').filter(function (line) {
+    var lineTokens = data.toString().split('\n').filter(function (line) {
         return line.length;
     });
 
-    while (tokens.length) {
+    lineQueue = lineQueue.concat(lineTokens);
 
-        var count = +tokens.shift().match(regexp)[1]; // check format
+    readEntry();
+
+}.bind(this));
+
+function readEntry() {
+
+    while (lineQueue.length) {
+
+        var count = +lineQueue[0].match(headerRegexp)[1]; // check format
+
+        if ((lineQueue.length - 1) < count) {
+            return;
+        }
+
+        lineQueue.shift();
 
         var eventTokens = [];
+
         while (count--) {
-            var lineToken = tokens.shift();
-            eventParser.addLine(lineToken);
-            eventTokens.push(lineToken);
+            eventTokens.push(lineQueue.shift());
         }
 
         var callback = queue.shift();
         callback(null, eventTokens);
-
     }
 
-}.bind(this));
+}
+
 
 function parseDataArray(data) {
 
-    console.log(data);
-
     var result = {};
     data.forEach(function (key) {
-        console.log(key);
         if (!_.isUndefined(key)) {
             var tokens = key.split('=');
             result[tokens[0]] = parseFloat(tokens[1]);
@@ -63,18 +72,23 @@ function getdata(key, callback) {
 
 
 setInterval(function () {
-    getdata('trogdor.campjs.com/load/load', function (err, data) {
-        console.log({'load': parseDataArray(data)});
-    });
-    getdata('trogdor.campjs.com/interface-en1/if_errors', function (err, data) {
-        console.log({'if_errors': parseDataArray(data)});
-    });
-    getdata('trogdor.campjs.com/interface-en1/if_octets', function (err, data) {
-        console.log({'if_octets': parseDataArray(data)});
-    });
-    getdata('trogdor.campjs.com/interface-en1/if_packets', function (err, data) {
-        console.log({'if_packets': parseDataArray(data)});
-    });
+
+    var metrics = [
+        'trogdor.campjs.com/interface-en1/if_errors'
+        , 'trogdor.campjs.com/interface-en1/if_octets'
+        , 'trogdor.campjs.com/interface-en1/if_packets'
+        , 'trogdor.campjs.com/load/load'
+        , 'trogdor.campjs.com/memory/memory-active'
+        , 'trogdor.campjs.com/memory/memory-free'
+        , 'trogdor.campjs.com/memory/memory-inactive'
+        , 'trogdor.campjs.com/memory/memory-wired'
+    ];
+
+    metrics.forEach(function (metric) {
+            getdata(metric, function (err, data) {
+                console.log({metric: metric, data: parseDataArray(data)});
+            });
+        }
+    )
 }, 3000);
 
-//client.end();
