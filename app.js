@@ -1,42 +1,80 @@
 var net = require('net'),
-    ListReader = require('./lib/list_reader'),
-    ValueReader = require('./lib/value_reader'),
-    ObjectWriter = require('./lib/object_writer'),
-    events = require('events');
+    events = require('events'),
+    _ = require('lodash'),
+    EntryParser = require('./lib/entry_parser'),
+    options = {path: '/usr/local/var/run/collectd-unixsock'},
+    regexp = /(\d+) Values found/i;
 
-var doneCallback = function(){
-    // done
-    console.log('DONE')
+var queue = [];
+var eventParser = new EntryParser();
+
+
+var client = net.connect(options,
+    function () {
+        console.log('connected');
+    }.bind(this));
+
+client.on('data', function (data) {
+
+    console.log('data =\n' + data.toString());
+
+    // split
+    var tokens = data.toString().split('\n').filter(function (line) {
+        return line.length;
+    });
+
+    while (tokens.length) {
+
+        var count = +tokens.shift().match(regexp)[1]; // check format
+
+        var eventTokens = [];
+        while (count--) {
+            var lineToken = tokens.shift();
+            eventParser.addLine(lineToken);
+            eventTokens.push(lineToken);
+        }
+
+        var callback = queue.shift();
+        callback(null, eventTokens);
+
+    }
+
+}.bind(this));
+
+function parseDataArray(data) {
+
+    console.log(data);
+
+    var result = {};
+    data.forEach(function (key) {
+        console.log(key);
+        if (!_.isUndefined(key)) {
+            var tokens = key.split('=');
+            result[tokens[0]] = parseFloat(tokens[1]);
+        }
+    });
+    return result;
 }
 
-var objectWriter = new ObjectWriter();
+function getdata(key, callback) {
+    client.write('GETVAL ' + key + '\n');
+    queue.push(callback);
+}
 
-var client = net.connect({path: '/usr/local/var/run/collectd-unixsock'},
-    function () { //'connect' listener
-        console.log('client connected');
+
+setInterval(function () {
+    getdata('trogdor.campjs.com/load/load', function (err, data) {
+        console.log({'load': parseDataArray(data)});
     });
-
-var listReader = new ListReader();
-
-client.pipe(listReader).pipe(objectWriter).pipe(process.stdout);
-
-//client.write('LISTVAL\r\n');
-
-client.end();
-
-var valueReader = new ValueReader(doneCallback);
-var objectWriter = new ObjectWriter();
-
-var valueClient = net.connect({path: '/usr/local/var/run/collectd-unixsock'},
-    function () { //'connect' listener
-        console.log('client connected');
+    getdata('trogdor.campjs.com/interface-en1/if_errors', function (err, data) {
+        console.log({'if_errors': parseDataArray(data)});
     });
+    getdata('trogdor.campjs.com/interface-en1/if_octets', function (err, data) {
+        console.log({'if_octets': parseDataArray(data)});
+    });
+    getdata('trogdor.campjs.com/interface-en1/if_packets', function (err, data) {
+        console.log({'if_packets': parseDataArray(data)});
+    });
+}, 3000);
 
-valueClient.pipe(valueReader).pipe(objectWriter).pipe(process.stdout);
-
-
-valueClient.write('GETVAL trogdor.campjs.com/load/load\n');
-valueClient.write('GETVAL trogdor.campjs.com/load/load\n');
-valueClient.write('GETVAL trogdor.campjs.com/load/load\n');
-
-valueClient.end();
+//client.end();
