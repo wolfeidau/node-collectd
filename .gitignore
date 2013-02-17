@@ -16,3 +16,5 @@ config.json
 coverage.*
 lib-cov
 
+testDB
+collectd-data

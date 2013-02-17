@@ -1,14 +1,13 @@
-var net = require('net'),
-    events = require('events'),
-    _ = require('lodash'),
-    EntryParser = require('./lib/entry_parser'),
-    options = {path: '/usr/local/var/run/collectd-unixsock'},
-    headerRegexp = /(\d+) Value.*/i;
+var net = require('net')
+    , _ = require('lodash')
+    , MetricStorage = require('./lib/metric_storage.js');
+
+var options = {path: '/usr/local/var/run/collectd-unixsock'}
+    , headerRegexp = /(\d+) Value.*/i;
 
 var queue = [];
 var lineQueue = [];
-var eventParser = new EntryParser();
-
+var metricStorage = new MetricStorage({dbName: './collectd-data', valueEncoding: 'json'});
 
 var client = net.connect(options,
     function () {
@@ -55,6 +54,8 @@ function readEntry() {
 
 function parseDataArray(data) {
 
+    //console.log(data);
+
     var result = {};
     data.forEach(function (key) {
         if (!_.isUndefined(key)) {
@@ -65,11 +66,10 @@ function parseDataArray(data) {
     return result;
 }
 
-function getdata(key, callback) {
+function doGetVal(key, callback) {
     client.write('GETVAL ' + key + '\n');
     queue.push(callback);
 }
-
 
 setInterval(function () {
 
@@ -85,8 +85,13 @@ setInterval(function () {
     ];
 
     metrics.forEach(function (metric) {
-            getdata(metric, function (err, data) {
-                console.log({metric: metric, data: parseDataArray(data)});
+            doGetVal(metric, function (err, data) {
+                var dateEntry = new Date();
+
+                //console.log('data:\n', {metricKey: metric, metricDate: dateEntry, metricData: parseDataArray(data)});
+
+                metricStorage.saveMetric(metric, dateEntry,
+                    {metricKey: metric, metricDate: dateEntry, metricData: parseDataArray(data)});
             });
         }
     )

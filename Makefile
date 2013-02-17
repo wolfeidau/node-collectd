@@ -1,4 +1,4 @@
-REPORTER = dot
+REPORTER = spec
 
 test: 
 	@#lib-cov
