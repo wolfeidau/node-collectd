@@ -34,7 +34,7 @@ describe('DB', function () {
         internals.datesArray.forEach(function (dateEntry) {
             var metricKey = 'trogdor.campjs.com/interface-en1/if_errors';
             internals.db.saveMetric(metricKey, dateEntry,
-                {key: metricKey, date: dateEntry, data: {rx: 0, tx: 0 }}
+                {metricKey: metricKey, metricDate: dateEntry, metricData: {rx: 0, tx: 0 }}
             )
         });
     });

@@ -2,19 +2,18 @@ var net = require('net')
     , _ = require('lodash')
     , MetricStorage = require('./lib/metric_storage.js');
 
-var options = {path: '/usr/local/var/run/collectd-unixsock'}
-    , headerRegexp = /(\d+) Value.*/i;
+var queue = []
+    , lineQueue = []
+    , metricStorage = new MetricStorage({dbName: './collectd-data', valueEncoding: 'json'});
 
-var queue = [];
-var lineQueue = [];
-var metricStorage = new MetricStorage({dbName: './collectd-data', valueEncoding: 'json'});
-
-var client = net.connect(options,
+var client = net.connect({path: '/usr/local/var/run/collectd-unixsock'},
     function () {
         console.log('connected');
     }.bind(this));
 
 client.on('data', function (data) {
+
+    var headerRegexp = /(\d+) Value.*/i;
 
     // split
     var lineTokens = data.toString().split('\n').filter(function (line) {
@@ -22,12 +21,6 @@ client.on('data', function (data) {
     });
 
     lineQueue = lineQueue.concat(lineTokens);
-
-    readEntry();
-
-}.bind(this));
-
-function readEntry() {
 
     while (lineQueue.length) {
 
@@ -49,18 +42,19 @@ function readEntry() {
         callback(null, eventTokens);
     }
 
-}
+}.bind(this));
 
-
-function parseDataArray(data) {
-
-    //console.log(data);
+function parseDataArray(err, data) {
 
     var result = {};
     data.forEach(function (key) {
         if (!_.isUndefined(key)) {
             var tokens = key.split('=');
-            result[tokens[0]] = parseFloat(tokens[1]);
+            if (tokens.length == 2) {
+                result[tokens[0]] = parseFloat(tokens[1]);
+            } else {
+                err = 'missing tokens';
+            }
         }
     });
     return result;
@@ -86,12 +80,18 @@ setInterval(function () {
 
     metrics.forEach(function (metric) {
             doGetVal(metric, function (err, data) {
-                var dateEntry = new Date();
+                var dateEntry = new Date()
+                    , err = null
+                    , metricEntry = {metricKey: metric, metricDate: dateEntry, metricData: parseDataArray(err, data)};
 
-                //console.log('data:\n', {metricKey: metric, metricDate: dateEntry, metricData: parseDataArray(data)});
+                if (err) {
+                    console.log('ERROR:', err);
+                } else {
 
-                metricStorage.saveMetric(metric, dateEntry,
-                    {metricKey: metric, metricDate: dateEntry, metricData: parseDataArray(data)});
+                    console.log('data:\n', metricEntry);
+                    metricStorage.saveMetric(metric, dateEntry, metricEntry);
+                }
+
             });
         }
     )
