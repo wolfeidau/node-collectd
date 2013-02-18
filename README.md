@@ -5,11 +5,6 @@ NodeJS library which can retrieve values from collectd and stores it into a loca
 ## Getting Started
 Install the module with: `npm install collectd`
 
-```javascript
-var collectd = require('collectd');
-collectd.awesome(); // "awesome"
-```
-
 ## Documentation
 _(Coming soon)_
 

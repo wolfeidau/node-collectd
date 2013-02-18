@@ -45,7 +45,7 @@ describe('DB', function () {
 
         internals.db.readStream({start: 'trogdor.campjs.com/interface-en1/if_errors/2013'})
             .on('data',function (data) {
-                console.log('data:\n', data);
+                //console.log('data:\n', data);
                 count++;
             }).on('end', function () {
                 //console.log('Stream closed')

@@ -1,8 +1,8 @@
 {
-  "name": "collectd",
+  "name": "node-collectd",
   "description": "NodeJS library which can retrieve values from collectd.",
-  "version": "0.1.0",
-  "homepage": "https://github.com/wolfeidau/collectd",
+  "version": "0.2.0",
+  "homepage": "https://github.com/wolfeidau/node-collectd",
   "author": {
     "name": "Mark Wolfe",
     "email": "mark@wolfe.id.au",
@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/wolfeidau/collectd.git"
+    "url": "git://github.com/wolfeidau/node-collectd.git"
   },
   "bugs": {
-    "url": "https://github.com/wolfeidau/collectd/issues"
+    "url": "https://github.com/wolfeidau/node-collectd/issues"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/wolfeidau/collectd/blob/master/LICENSE-MIT"
+      "url": "https://github.com/wolfeidau/node-collectd/blob/master/LICENSE-MIT"
     }
   ],
   "main": "lib/collectd",
@@ -30,16 +30,11 @@
   },
   "devDependencies": {
     "mocha": "1.x.x",
-    "chai": "1.x.x",
-    "sinon": "1.x.x",
-    "handlebars": ">= 1.0.8",
-    "jade": "~0.28.1"
+    "chai": "1.x.x"
   },
   "keywords": [],
   "dependencies": {
     "lodash": "~1.0.0-rc.3",
-    "steez": "~0.4.2",
-    "levelup": "~0.5.4",
-    "moment": "~2.0.0"
+    "levelup": "~0.5.4"
   }
 }
