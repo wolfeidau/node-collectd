@@ -1,5 +1,5 @@
 var Chai = require('chai')
-    , MetricStorage = require('../lib/metric_storage.js')
+    , metricStorage = require('../lib/metric_storage.js')
     , util = require('util');
 
 
@@ -20,20 +20,28 @@ internals.datesArray = [
 
 describe('DB', function () {
 
-    before(function () {
-        internals.db = new MetricStorage({dbName: './testDB', valueEncoding: 'json'});
-    });
-
     it('create a db', function (done) {
-        expect(internals.db).to.exist;
+        expect(metricStorage).to.exist;
         done();
     });
 
     it('create entries', function () {
 
         internals.datesArray.forEach(function (dateEntry) {
+            var metricKey = 'trogdor.campjs.com/interface-en0/if_errors';
+            metricStorage.saveMetric(metricKey, dateEntry,
+                {metricKey: metricKey, metricDate: dateEntry, metricData: {rx: 0, tx: 0 }}
+            )
+        });
+        internals.datesArray.forEach(function (dateEntry) {
             var metricKey = 'trogdor.campjs.com/interface-en1/if_errors';
-            internals.db.saveMetric(metricKey, dateEntry,
+            metricStorage.saveMetric(metricKey, dateEntry,
+                {metricKey: metricKey, metricDate: dateEntry, metricData: {rx: 0, tx: 0 }}
+            )
+        });
+        internals.datesArray.forEach(function (dateEntry) {
+            var metricKey = 'trogdor.campjs.com/interface-en1/if_octets';
+            metricStorage.saveMetric(metricKey, dateEntry,
                 {metricKey: metricKey, metricDate: dateEntry, metricData: {rx: 0, tx: 0 }}
             )
         });
@@ -42,8 +50,9 @@ describe('DB', function () {
     it('read entries', function (done) {
 
         var count = 0;
-
-        internals.db.readStream({start: 'trogdor.campjs.com/interface-en1/if_errors/2013'})
+        // START is inclusive
+        // END is exlusive so we use ~ which is a higher character code than the - which is next in the timestamp.
+        metricStorage.readStream({start: 'trogdor.campjs.com/interface-en1/if_errors/2013', end: 'trogdor.campjs.com/interface-en1/if_errors/2013~'})
             .on('data',function (data) {
                 //console.log('data:\n', data);
                 count++;
