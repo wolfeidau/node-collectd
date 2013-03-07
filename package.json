@@ -32,5 +32,11 @@
         "mocha": "~1.8.1",
         "chai": "~1.5.0"
     },
-    "keywords": ["collectd"]
+    "keywords": [
+        "collectd"
+    ],
+    "dependencies": {
+        "hapi": "~0.14.2",
+        "nconf": "~0.6.7"
+    }
 }
